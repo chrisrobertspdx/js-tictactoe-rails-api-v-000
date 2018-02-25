@@ -2,7 +2,8 @@
 // current game id
 
 let gameID = 0;
-let gameState = ["","","","","","","","",""];
+let gameState = ["X","","","","X","O","","",""];
+let loadGameState = ["X","","","","X","O","","",""];
 let turn = 0;
 
 const WIN_COMBINATIONS = [
@@ -21,18 +22,41 @@ $(document).ready(function() {
   
   //basic listeners
   attachListeners();
+  
+  //
+  //loadGame();
 
 });
+
+function loadGame() {
+    turn = 0;
+    $( "td" ).each( function(index) {
+        let token = loadGameState[index];
+        $( this ).text(token);
+        if (token !== "") {
+            $( this ).addClass("disabled");
+            turn++;
+        }
+    }) 
+}
 
 function attachListeners() {
   $( "#save" ).on( "click", function() {
     console.log( "save" );
+    saveGame();
   });
   $( "#previous" ).on( "click", function() {
     console.log( "previous" );
+    showPreviousGames();
   });
   $( "#clear" ).on( "click", function() {
-    console.log( "clear" );
+    //reset global var
+    turn = 0;
+    gameID = 0;
+    $( "td" ).each( function(index) {
+        $( this ).text("");
+        $( this ).removeClass("disabled");
+    })
   });
   
   // add class disable then remove them all when we start the game
@@ -47,8 +71,9 @@ function attachListeners() {
             e.stopPropagation();
         }
         else {
-                $(this).text(token);
-    turn++;
+            $(this).text(token);
+            $(this).addClass("disabled");
+            turn++;
         }
 
     //make unclickable
@@ -85,6 +110,55 @@ function doTurn() {
     //updateState
     //checkWinner
 }
+
+function saveGame() {
+  const gameData = { 
+      state: gameState,
+    }
+    console.log(gameState);
+    console.log(gameData);
+    
+    //if (currentGame) {
+    //$.ajax({
+    //  type: 'PATCH',
+    //  url: `/games/${currentGame}`,
+    //  data: gameData
+    //});
+    
+    
+    $.post('/games', gameData, function(game) {
+      currentGame = game.data.id;
+      //$('#games').append(`<button id="gameid-${game.data.id}">${game.data.id}</button><br>`);
+      //$("#gameid-" + game.data.id).on('click', () => reloadGame(game.data.id));
+    });
+
+}
+
+function showPreviousGames() {
+   let list="";
+   $.get('/games', function(game) {
+       game.data.forEach( function(e) {
+           $('#games').append(`<button id="gameid-${e.id}">${e.id}</button><br>`);
+           $("#gameid-" + e.id).on('click', () => reloadGame(e.id));
+       })
+   })
+}
+
+function reloadGame(id) {
+    turn = 0;
+    $.get('/games/'+id, function(game) {
+        console.log(game.data.attributes.state);
+        $( "td" ).each( function(index) {
+            let token = game.data.attributes.state[index];
+            $( this ).text(token);
+            if (token !== "") {
+                $( this ).addClass("disabled");
+                turn++;
+            }
+        }) 
+    })
+}
+
 /*
 player()
 Returns the token of the player whose turn it is, 'X' when the turn variable is even and 'O' when it is odd.
